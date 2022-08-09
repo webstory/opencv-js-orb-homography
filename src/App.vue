@@ -53,21 +53,17 @@ export default {
       this.frameNum++;
       const tickStart = Date.now();
       //im2 is the video feed
-      const im2 = cv.imread(this.$refs.targetImg);
+      const im2 = cv.imread(this.$refs.targetImg, cv.IMREAD_GRAYSCALE);
       //im3 is annotated png
       const im3 = cv.imread(this.$refs.annotatedImg);
-
-      const im2Gray = new cv.Mat();
-      cv.cvtColor(im2, im2Gray, cv.COLOR_BGR2GRAY);
 
       const keypoints2 = new cv.KeyPointVector();
       const descriptors2 = new cv.Mat();
 
       const mask = new cv.Mat();
       // 23.2% of total compute time
-      orb.detectAndCompute(im2Gray, mask, keypoints2, descriptors2);
+      orb.detectAndCompute(im2, mask, keypoints2, descriptors2);
       mask.delete();
-      im2Gray.delete();
 
       // Match features.
       const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
@@ -154,11 +150,7 @@ export default {
       orb = new cv.ORB(1000, 2, 8);
 
       //im1 is the reference image we are trying to align
-      const im1 = cv.imread(this.$refs.refImg);
-
-      // Convert images to grayscale
-      const im1Gray = new cv.Mat();
-      cv.cvtColor(im1, im1Gray, cv.COLOR_BGR2GRAY);
+      const im1 = cv.imread(this.$refs.refImg, cv.IMREAD_GRAYSCALE);
 
       // Variables to store keypoints and descriptors
       keypoints1 = new cv.KeyPointVector();
@@ -166,27 +158,11 @@ export default {
 
       // Detect ORB features and compute descriptors.
       const mask = new cv.Mat();
-      orb.detectAndCompute(im1Gray, mask, keypoints1, descriptors1);
+      orb.detectAndCompute(im1, mask, keypoints1, descriptors1);
+      mask.delete();
+      im1.delete();
 
       this.ticktimer = requestAnimationFrame(this.tick);
-
-      // clean up
-      im1.delete();
-      im1Gray.delete();
-      mask.delete();
-      // matches.delete();
-      // bf.delete();
-      // orb.delete();
-      // descriptors1.delete();
-      // descriptors2.delete();
-      // keypoints1.delete();
-      // keypoints2.delete();
-      // im1Gray.delete();
-      // im2Gray.delete();
-      // h.delete();
-      // finalResult.delete();
-      // mat1.delete();
-      // mat2.delete();
     };
   },
   beforeUnmount() {
