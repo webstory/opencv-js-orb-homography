@@ -35,7 +35,6 @@
 import cv from "opencv-ts";
 
 let orb;
-let bf;
 let keypoints1;
 let descriptors1;
 
@@ -65,10 +64,13 @@ export default {
       const descriptors2 = new cv.Mat();
 
       const mask = new cv.Mat();
+      // 46.3% of total compute time
       orb.detectAndCompute(im2Gray, mask, keypoints2, descriptors2);
 
       // Match features.
+      const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
       const matches = new cv.DMatchVector();
+      // 31.5% of total compute time
       bf.match(descriptors1, descriptors2, matches);
 
       // Sort matches by score
@@ -123,6 +125,7 @@ export default {
       keypoints2.delete();
       descriptors2.delete();
       goodMatches.delete();
+      bf.delete();
       finalResult.delete();
       im2Gray.delete();
       im2.delete();
@@ -135,7 +138,6 @@ export default {
     // https://stackoverflow.com/questions/65855110/how-can-i-align-images-using-opencv-js
     cv.onRuntimeInitialized = () => {
       orb = new cv.ORB(1000);
-      bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
 
       //im1 is the reference image we are trying to align
       const im1 = cv.imread(this.$refs.refImg);
@@ -176,7 +178,6 @@ export default {
   beforeUnmount() {
     cancelAnimationFrame(this.tickTimer);
     orb.delete();
-    bf.delete();
     keypoints1.delete();
     descriptors1.delete();
   },
