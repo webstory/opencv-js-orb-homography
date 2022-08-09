@@ -18,7 +18,9 @@
   <canvas ref="canvas1" class="canvas" />
 
   <h4>Final warping</h4>
-  <span>TickTime: {{ tickTime }}ms</span>
+  <p>
+    <span>TickTime: {{ tickTime }}ms</span> <span>Frame#: {{ frameNum }}</span>
+  </p>
   <div class="overlay">
     <img src="./assets/rpi2.png" />
     <canvas ref="canvas2" />
@@ -33,6 +35,7 @@
 import cv from "opencv-ts";
 
 let orb;
+let bf;
 let keypoints1;
 let descriptors1;
 
@@ -42,11 +45,13 @@ export default {
   data() {
     return {
       tickTime: -1,
+      frameNum: 0,
       tickTimer: -1,
     };
   },
   methods: {
     tick() {
+      this.frameNum++;
       const tickStart = Date.now();
       //im2 is the video feed
       const im2 = cv.imread(this.$refs.targetImg);
@@ -59,10 +64,10 @@ export default {
       const keypoints2 = new cv.KeyPointVector();
       const descriptors2 = new cv.Mat();
 
-      orb.detectAndCompute(im2Gray, new cv.Mat(), keypoints2, descriptors2);
+      const mask = new cv.Mat();
+      orb.detectAndCompute(im2Gray, mask, keypoints2, descriptors2);
 
       // Match features.
-      const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
       const matches = new cv.DMatchVector();
       bf.match(descriptors1, descriptors2, matches);
 
@@ -110,6 +115,19 @@ export default {
       cv.imshow(this.$refs.canvas2, finalResult);
 
       this.tickTime = Date.now() - tickStart;
+
+      mat1.delete();
+      mat2.delete();
+      mask.delete();
+      h.delete();
+      keypoints2.delete();
+      descriptors2.delete();
+      goodMatches.delete();
+      finalResult.delete();
+      im2Gray.delete();
+      im2.delete();
+      im3.delete();
+
       requestAnimationFrame(this.tick);
     },
   },
@@ -117,6 +135,7 @@ export default {
     // https://stackoverflow.com/questions/65855110/how-can-i-align-images-using-opencv-js
     cv.onRuntimeInitialized = () => {
       orb = new cv.ORB(1000);
+      bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
 
       //im1 is the reference image we are trying to align
       const im1 = cv.imread(this.$refs.refImg);
@@ -130,11 +149,15 @@ export default {
       descriptors1 = new cv.Mat();
 
       // Detect ORB features and compute descriptors.
-      orb.detectAndCompute(im1Gray, new cv.Mat(), keypoints1, descriptors1);
+      const mask = new cv.Mat();
+      orb.detectAndCompute(im1Gray, mask, keypoints1, descriptors1);
 
       this.ticktimer = requestAnimationFrame(this.tick);
 
       // clean up
+      im1.delete();
+      im1Gray.delete();
+      mask.delete();
       // matches.delete();
       // bf.delete();
       // orb.delete();
@@ -152,6 +175,10 @@ export default {
   },
   beforeUnmount() {
     cancelAnimationFrame(this.tickTimer);
+    orb.delete();
+    bf.delete();
+    keypoints1.delete();
+    descriptors1.delete();
   },
 };
 </script>
