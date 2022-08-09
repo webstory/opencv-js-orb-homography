@@ -64,20 +64,24 @@ export default {
       const descriptors2 = new cv.Mat();
 
       const mask = new cv.Mat();
-      // 46.3% of total compute time
+      // 23.2% of total compute time
       orb.detectAndCompute(im2Gray, mask, keypoints2, descriptors2);
+      mask.delete();
+      im2Gray.delete();
 
       // Match features.
       const bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
       const matches = new cv.DMatchVector();
-      // 31.5% of total compute time
+      // 47.8% of total compute time
       bf.match(descriptors1, descriptors2, matches);
+      bf.delete();
 
       // Sort matches by score
       const goodMatches = new cv.DMatchVector();
       for (let i = 0; i < matches.size(); i++) {
-        if (matches.get(i).distance < 50) {
-          goodMatches.push_back(matches.get(i));
+        const match = matches.get(i);
+        if (match.distance < 50) {
+          goodMatches.push_back(match);
         }
       }
 
@@ -105,31 +109,28 @@ export default {
         points2.push(keypoints2.get(goodMatches.get(i).trainIdx).pt.x);
         points2.push(keypoints2.get(goodMatches.get(i).trainIdx).pt.y);
       }
+      keypoints2.delete();
+      descriptors2.delete();
+      goodMatches.delete();
 
       // Find homography
       const mat1 = cv.matFromArray(points1.length, 2, cv.CV_32F, points1);
       const mat2 = cv.matFromArray(points2.length, 2, cv.CV_32F, points2);
       const h = cv.findHomography(mat1, mat2, cv.RANSAC);
+      mat1.delete();
+      mat2.delete();
 
       // Use homography to warp image
       const finalResult = new cv.Mat();
       cv.warpPerspective(im3, finalResult, h, im2.size());
-      cv.imshow(this.$refs.canvas2, finalResult);
-
-      this.tickTime = Date.now() - tickStart;
-
-      mat1.delete();
-      mat2.delete();
-      mask.delete();
       h.delete();
-      keypoints2.delete();
-      descriptors2.delete();
-      goodMatches.delete();
-      bf.delete();
+
+      cv.imshow(this.$refs.canvas2, finalResult);
       finalResult.delete();
-      im2Gray.delete();
       im2.delete();
       im3.delete();
+
+      this.tickTime = Date.now() - tickStart;
 
       requestAnimationFrame(this.tick);
     },
@@ -137,7 +138,20 @@ export default {
   mounted() {
     // https://stackoverflow.com/questions/65855110/how-can-i-align-images-using-opencv-js
     cv.onRuntimeInitialized = () => {
-      orb = new cv.ORB(1000);
+      /*
+      orb = cv2.ORB_create(
+            nfeatures=40000,
+            scaleFactor=1.2,
+            nlevels=8,
+            edgeThreshold=31,
+            firstLevel=0,
+            WTA_K=2,
+            scoreType=cv2.ORB_HARRIS_SCORE,
+            patchSize=31,
+            fastThreshold=20,
+        )
+      */
+      orb = new cv.ORB(1000, 2, 8);
 
       //im1 is the reference image we are trying to align
       const im1 = cv.imread(this.$refs.refImg);
