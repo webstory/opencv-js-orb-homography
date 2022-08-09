@@ -18,6 +18,7 @@
   <canvas ref="canvas1" class="canvas" />
 
   <h4>Final warping</h4>
+  <span>TickTime: {{ tickTime }}ms</span>
   <div class="overlay">
     <img src="./assets/rpi2.png" />
     <canvas ref="canvas2" />
@@ -31,40 +32,33 @@
 
 import cv from "opencv-ts";
 
+let orb;
+let keypoints1;
+let descriptors1;
+
 export default {
   name: "App",
   components: {},
   data() {
-    return {};
+    return {
+      tickTime: -1,
+      tickTimer: -1,
+    };
   },
   methods: {
-    //
-  },
-  mounted() {
-    // https://stackoverflow.com/questions/65855110/how-can-i-align-images-using-opencv-js
-    cv.onRuntimeInitialized = () => {
-      //im1 is the reference image we are trying to align
-      const im1 = cv.imread(this.$refs.refImg);
+    tick() {
+      const tickStart = Date.now();
       //im2 is the video feed
       const im2 = cv.imread(this.$refs.targetImg);
-      // im3 is annotated png
+      //im3 is annotated png
       const im3 = cv.imread(this.$refs.annotatedImg);
 
-      // Convert images to grayscale
-      const im1Gray = new cv.Mat();
       const im2Gray = new cv.Mat();
-      cv.cvtColor(im1, im1Gray, cv.COLOR_BGR2GRAY);
       cv.cvtColor(im2, im2Gray, cv.COLOR_BGR2GRAY);
 
-      // Variables to store keypoints and descriptors
-      const keypoints1 = new cv.KeyPointVector();
       const keypoints2 = new cv.KeyPointVector();
-      const descriptors1 = new cv.Mat();
       const descriptors2 = new cv.Mat();
 
-      // Detect ORB features and compute descriptors.
-      const orb = new cv.ORB(1000);
-      orb.detectAndCompute(im1Gray, new cv.Mat(), keypoints1, descriptors1);
       orb.detectAndCompute(im2Gray, new cv.Mat(), keypoints2, descriptors2);
 
       // Match features.
@@ -115,21 +109,49 @@ export default {
       cv.warpPerspective(im3, finalResult, h, im2.size());
       cv.imshow(this.$refs.canvas2, finalResult);
 
+      this.tickTime = Date.now() - tickStart;
+      requestAnimationFrame(this.tick);
+    },
+  },
+  mounted() {
+    // https://stackoverflow.com/questions/65855110/how-can-i-align-images-using-opencv-js
+    cv.onRuntimeInitialized = () => {
+      orb = new cv.ORB(1000);
+
+      //im1 is the reference image we are trying to align
+      const im1 = cv.imread(this.$refs.refImg);
+
+      // Convert images to grayscale
+      const im1Gray = new cv.Mat();
+      cv.cvtColor(im1, im1Gray, cv.COLOR_BGR2GRAY);
+
+      // Variables to store keypoints and descriptors
+      keypoints1 = new cv.KeyPointVector();
+      descriptors1 = new cv.Mat();
+
+      // Detect ORB features and compute descriptors.
+      orb.detectAndCompute(im1Gray, new cv.Mat(), keypoints1, descriptors1);
+
+      this.ticktimer = requestAnimationFrame(this.tick);
+
       // clean up
-      matches.delete();
-      bf.delete();
-      orb.delete();
-      descriptors1.delete();
-      descriptors2.delete();
-      keypoints1.delete();
-      keypoints2.delete();
-      im1Gray.delete();
-      im2Gray.delete();
-      h.delete();
-      finalResult.delete();
-      mat1.delete();
-      mat2.delete();
+      // matches.delete();
+      // bf.delete();
+      // orb.delete();
+      // descriptors1.delete();
+      // descriptors2.delete();
+      // keypoints1.delete();
+      // keypoints2.delete();
+      // im1Gray.delete();
+      // im2Gray.delete();
+      // h.delete();
+      // finalResult.delete();
+      // mat1.delete();
+      // mat2.delete();
     };
+  },
+  beforeUnmount() {
+    cancelAnimationFrame(this.tickTimer);
   },
 };
 </script>
